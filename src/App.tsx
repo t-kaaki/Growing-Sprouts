@@ -59,7 +59,7 @@ export default function App() {
 
       if (index === 0) return;
       
-      if (index === 1 && waterLevel > 0) {
+      if (!isGerminated && waterLevel > 0) {
         isGerminated = true;
         leafSize = 6; // 発芽時に最小限の葉のサイズを持たせる
       }
