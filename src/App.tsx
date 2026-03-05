@@ -426,14 +426,16 @@ export default function App() {
                         <span className={`text-sm font-bold ${isSuccess ? 'text-emerald-800' : 'text-red-800'}`}>育成タイプ</span>
                       </div>
                       <div className={`text-lg font-bold ${isSuccess ? 'text-emerald-700' : 'text-red-700'}`}>
-                        {stats.pattern === 'SEEDLING_HEALTHY' ? '日光を当て続けた苗' :
+                        {stats.isDead ? '枯死' :
+                         stats.pattern === 'SEEDLING_HEALTHY' ? '日光を当て続けた苗' :
                          stats.pattern === 'SEEDLING_ETIOLATED' ? '徒長した苗(光→暗)' :
                          stats.pattern === 'SPROUT_GREENED' ? '緑化した苗(暗→光)' :
                          stats.pattern === 'SPROUT_RE_ETIOLATED' ? '再徒長した苗(暗→光→暗)' :
                          stats.pattern === 'SPROUT_YELLOW' ? '黄色のスプラウト' : '不明'}
                       </div>
                       <p className={`text-sm mt-2 leading-relaxed ${isSuccess ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {stats.pattern === 'SEEDLING_HEALTHY' ? '非常に健康で丈夫な苗に育ちました！光合成が活発に行われ、栄養満点です。' :
+                        {stats.isDead ? '水分が不足し、枯れてしまいました。' :
+                         stats.pattern === 'SEEDLING_HEALTHY' ? '非常に健康で丈夫な苗に育ちました！光合成が活発に行われ、栄養満点です。' :
                          stats.pattern === 'SEEDLING_ETIOLATED' ? '途中で暗くなったため、再び光を求めて伸び始めました。環境の変化に敏感に反応しましたね。' :
                          stats.pattern === 'SPROUT_GREENED' ? '理想的なスプラウトです！暗所で茎を伸ばし、最後に光を当てて栄養価を高めることができました。' :
                          stats.pattern === 'SPROUT_RE_ETIOLATED' ? '一度緑化しましたが、再び暗所に戻したことで茎がさらに伸びました。植物の生命力を感じます。' :
