@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 type DayState = {
   day: number;
   isLightOn: boolean;
-  isWatered: boolean;
+  waterLevel: number;
 };
 
 const MAX_DAYS = 10;
@@ -14,8 +14,7 @@ const SPROUT_COUNT = 12;
 export default function App() {
   const [currentDay, setCurrentDay] = useState(0);
   const [isLightOn, setIsLightOn] = useState(true);
-  const [isWatered, setIsWatered] = useState(false);
-  const [history, setHistory] = useState<DayState[]>([{ day: 0, isLightOn: true, isWatered: false }]);
+  const [history, setHistory] = useState<DayState[]>([{ day: 0, isLightOn: true, waterLevel: 0 }]);
   const [isHarvested, setIsHarvested] = useState(false);
 
   // スプラウトの個体データを生成（初回のみ）
@@ -48,11 +47,9 @@ export default function App() {
 
     daysToProcess.forEach((state, index) => {
       // 水分の計算
-      if (state.isWatered) {
-        waterLevel = 100;
-      } else {
-        waterLevel = Math.max(0, waterLevel - 40);
-      }
+      const reduction = state.isLightOn ? 40 : 30;
+      waterLevel = Math.max(0, waterLevel - reduction); // 毎日減る
+      waterLevel = Math.min(100, waterLevel + state.waterLevel); // その日の水やり分を加算
 
       if (waterLevel === 0 && isGerminated) {
         isDead = true;
@@ -95,9 +92,9 @@ export default function App() {
     // 水分量の表示用
     let displayWaterLevel = waterLevel;
     if (!includeLastDay && currentPendingState) {
-      if (currentPendingState.isWatered) {
-        displayWaterLevel = 100;
-      }
+      const reduction = currentPendingState.isLightOn ? 40 : 30;
+      displayWaterLevel = Math.max(0, displayWaterLevel - reduction);
+      displayWaterLevel = Math.min(100, displayWaterLevel + currentPendingState.waterLevel);
     }
 
     // 成長パターンの判定用
@@ -159,16 +156,16 @@ export default function App() {
     if (currentDay < MAX_DAYS && !stats.isDead) {
       const nextDay = currentDay + 1;
       setCurrentDay(nextDay);
-      setHistory(prev => [...prev, { day: nextDay, isLightOn, isWatered }]);
-      setIsWatered(false); // 次の日のために水やりをリセット
+      // 前日の水分量を引き継ぐ
+      setHistory(prev => [...prev, { day: nextDay, isLightOn, waterLevel: 0 }]);
+      // 水分量はそのまま維持（calculateStatsで減算される）
     }
   };
 
   const handleReset = () => {
     setCurrentDay(0);
-    setHistory([{ day: 0, isLightOn: true, isWatered: false }]);
+    setHistory([{ day: 0, isLightOn: true, waterLevel: 0 }]);
     setIsLightOn(true);
-    setIsWatered(false);
     setIsHarvested(false);
   };
 
@@ -183,17 +180,27 @@ export default function App() {
     // 現在の日の履歴も更新する（まだ日を進めていない場合）
     setHistory(prev => {
       const newHistory = [...prev];
-      newHistory[newHistory.length - 1].isLightOn = !isLightOn;
+      const lastIndex = newHistory.length - 1;
+      newHistory[lastIndex] = { ...newHistory[lastIndex], isLightOn: !isLightOn };
       return newHistory;
     });
   };
 
-  const toggleWater = () => {
-    setIsWatered(!isWatered);
+  const handleWater = () => {
+    console.log("handleWater called");
     // 現在の日の履歴も更新する（まだ日を進めていない場合）
     setHistory(prev => {
       const newHistory = [...prev];
-      newHistory[newHistory.length - 1].isWatered = !isWatered;
+      const lastIndex = newHistory.length - 1;
+      const currentWaterLevel = newHistory[lastIndex].waterLevel;
+      console.log("old waterLevel:", currentWaterLevel);
+      
+      newHistory[lastIndex] = { 
+        ...newHistory[lastIndex], 
+        waterLevel: Math.min(currentWaterLevel + 20, 100) 
+      };
+      
+      console.log("new waterLevel:", newHistory[lastIndex].waterLevel);
       return newHistory;
     });
   };
@@ -228,6 +235,13 @@ export default function App() {
             <Leaf size={24} />
           </div>
           <h1 className="text-xl font-bold text-stone-800 tracking-tight">スプラウト育成シミュレーター</h1>
+        </div>
+        <div className="bg-gray-100 p-2 text-xs">
+          Debug: {JSON.stringify({
+            day: currentDay,
+            input: history[history.length - 1],
+            calcWater: stats.waterLevel
+          })}
         </div>
         <div className="text-sm text-stone-500 font-medium">
           中学校 技術・家庭科（生物育成の技術）
@@ -324,26 +338,11 @@ export default function App() {
               </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => !isWatered && toggleWater()}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-lg border transition-all ${
-                    isWatered 
-                      ? 'border-blue-400 bg-blue-50 text-blue-700' 
-                      : 'border-stone-100 bg-stone-50 text-stone-400 hover:border-stone-200'
-                  }`}
+                  onClick={handleWater}
+                  className="flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all"
                 >
-                  <Droplets size={20} className={isWatered ? 'fill-blue-400' : ''} />
-                  <span className="text-xs font-bold">水やりあり</span>
-                </button>
-                <button
-                  onClick={() => isWatered && toggleWater()}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-lg border transition-all ${
-                    !isWatered 
-                      ? 'border-stone-400 bg-stone-100 text-stone-700' 
-                      : 'border-stone-100 bg-stone-50 text-stone-400 hover:border-stone-200'
-                  }`}
-                >
-                  <Droplets size={20} className={!isWatered ? 'text-stone-400' : ''} />
-                  <span className="text-xs font-bold">水やりなし</span>
+                  <Droplets size={20} className="fill-blue-400" />
+                  <span className="text-xs font-bold">水やり (+20%)</span>
                 </button>
               </div>
             </div>
@@ -460,18 +459,26 @@ export default function App() {
               <svg width="400" height="500" viewBox="0 0 400 500" className="overflow-visible">
                 {/* 容器 */}
                 <g transform="translate(0, 400)">
-                  {/* スポンジ/培地 */}
-                  <rect x="40" y="0" width="320" height="30" fill="#fef3c7" rx="4" />
+                  {/* 容器本体（背面） */}
+                  <path d="M 30 0 L 50 60 L 350 60 L 370 0 Z" fill="#ffffff" opacity="1" stroke="none" />
+                  
                   {/* 水分 */}
                   <motion.rect 
-                    x="40" y="20" width="320" height="10" 
-                    fill="#bae6fd" rx="2" 
-                    animate={{ opacity: stats.waterLevel / 100 * 0.6 }}
+                    x="40" 
+                    fill="#bae6fd" 
+                    rx="2" 
+                    animate={{ 
+                      height: stats.waterLevel / 100 * 60,
+                      y: 60 - (stats.waterLevel / 100 * 60)
+                    }}
+                    width="320"
                     transition={{ duration: 0.5 }}
                   />
-                  {/* 容器本体 */}
-                  <path d="M 30 0 L 50 60 L 350 60 L 370 0 Z" fill="#ffffff" opacity="0.3" stroke="#cbd5e1" strokeWidth="2" />
-                  <path d="M 30 0 L 50 60 L 350 60 L 370 0 Z" fill="none" stroke="#94a3b8" strokeWidth="2" />
+                  {/* スポンジ/培地 */}
+                  <rect x="70" y="0" width="260" height="60" fill="#fef3c7" opacity="0.7" rx="4" />
+                  
+                  {/* 容器枠線（前面） */}
+                  <path d="M 30 0 L 50 60 L 350 60 L 370 0 Z" fill="none" stroke="#cbd5e1" strokeWidth="2" />
                 </g>
 
                 {/* スプラウト群 */}
@@ -518,11 +525,11 @@ export default function App() {
                               : stats.pattern === 'SEEDLING_HEALTHY'
                                 ? '#16a34a' // 濃い緑
                                 : stats.pattern === 'SEEDLING_ETIOLATED'
-                                  ? '#86efac' // 薄い緑
+                                  ? '#16a34a' // 濃い緑（徒長しても緑のまま）
                                   : stats.pattern === 'SPROUT_GREENED'
                                     ? '#ffffff' // 白
                                     : stats.pattern === 'SPROUT_RE_ETIOLATED'
-                                      ? '#f8fafc' // ほぼ白
+                                      ? '#16a34a' // 緑（一度緑化したら緑のまま）
                                       : stats.isEtiolated 
                                         ? '#ffffff'
                                         : '#fef08a'
@@ -650,8 +657,8 @@ export default function App() {
                               {h.isLightOn ? '明所' : '暗所'}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Droplets size={14} className={h.isWatered ? "text-blue-500" : "text-stone-300"} />
-                              {h.isWatered ? '水あり' : '水なし'}
+                              <Droplets size={14} className={h.waterLevel > 0 ? "text-blue-500" : "text-stone-300"} />
+                              {h.waterLevel > 0 ? `水やり ${h.waterLevel}%` : '水なし'}
                             </span>
                           </div>
                         </div>
