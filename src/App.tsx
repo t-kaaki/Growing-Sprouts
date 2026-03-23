@@ -236,13 +236,6 @@ export default function App() {
           </div>
           <h1 className="text-xl font-bold text-stone-800 tracking-tight">スプラウト育成シミュレーター</h1>
         </div>
-        <div className="bg-gray-100 p-2 text-xs">
-          Debug: {JSON.stringify({
-            day: currentDay,
-            input: history[history.length - 1],
-            calcWater: stats.waterLevel
-          })}
-        </div>
         <div className="text-sm text-stone-500 font-medium">
           中学校 技術・家庭科（生物育成の技術）
         </div>
